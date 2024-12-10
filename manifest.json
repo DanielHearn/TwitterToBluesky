@@ -10,7 +10,8 @@
   "content_scripts": [
     {
       "js": ["scripts/detector.js"],
-      "matches": ["https://x.com/*", "https://twitter.com/*"]
+      "matches": ["https://x.com/*", "https://twitter.com/*"],
+      "run_at": "document_idle"
     }
   ],
   "host_permissions": ["https://*/"],
