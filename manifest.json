@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Hello Extensions",
-  "description": "Base Level Extension",
+  "name": "Twitter To Bluesky",
+  "description": "Extension that searches Bluesky for a matching account when viewing a Twitter profile or the following page.",
   "version": "1.0",
   "action": {
     "default_popup": "index.html",

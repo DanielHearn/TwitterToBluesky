@@ -1,3 +1,5 @@
+console.log('load')
+
 const checkAccount = (urlName, name, checkName) => {
   const nameUsed = checkName ? urlName : name
   chrome.runtime.sendMessage(
@@ -99,24 +101,52 @@ const checkFollowingPage = async () => {
 }
 
 const checkProfilePage = () => {
-  const urlName = window.location.pathname.split('/')[1].toLocaleLowerCase()
-  const target = document.querySelector('[data-testid="UserName"]')
-  if (target) {
-    const name = target.querySelector('span').innerText.toLocaleLowerCase()
+  const id = setInterval(() => {
+    const urlName = window.location.pathname.split('/')[1].toLocaleLowerCase()
+    const target = document.querySelector('[data-testid="UserName"]')
+    console.log(urlName, target)
     if (target) {
-      checkAccount(urlName, name, true)
-      loaded = true
+      const name = target.querySelector('span').innerText.toLocaleLowerCase()
+      if (name) {
+        checkAccount(urlName, name, true)
+        clearInterval(id)
+      }
     }
+  }, 100)
+}
+
+const checkPage = () => {
+  if (!document.querySelector('.TwitterToBlueSkyStyles')) {
+    document.querySelector('head').appendChild(styles)
   }
+  const existingLabels = document.querySelectorAll(
+    '.TwitterToBlueSkyProfile, .TwitterToBlueSkyFollowingLabel',
+  )
+  for (const label of existingLabels) {
+    label.remove()
+  }
+  clearInterval(followingId)
+  const id = setTimeout(() => {
+    if (window.location.pathname.split('/')[2] === 'following') {
+      setInterval(() => {
+        if (window.location.pathname.split('/')[2] === 'following') {
+          checkFollowingPage()
+        }
+      }, 1000)
+    } else {
+      checkProfilePage()
+    }
+  }, 200)
 }
 
 const styles = document.createElement('style')
+styles.className = 'TwitterToBlueSkyStyles'
 styles.innerHTML = `
 [data-testid="UserName"] {
   gap: 6px;
 }
 
-.TwitterToBlueSkyProfile, TwitterToBlueSkyFollowingLabel {
+.TwitterToBlueSkyProfile, .TwitterToBlueSkyFollowingLabel {
   padding: 0.5em;
   border-radius: 6px;
   background: #0085ff;
@@ -138,17 +168,8 @@ document.querySelector('head').appendChild(styles)
 let followingId = null
 
 window.navigation.addEventListener('navigate', (event) => {
-  let loaded = false
-  clearInterval(followingId)
-  const id = setTimeout(() => {
-    if (window.location.pathname.split('/')[2] === 'following') {
-      setInterval(() => {
-        if (window.location.pathname.split('/')[2] === 'following') {
-          checkFollowingPage()
-        }
-      }, 1000)
-    } else {
-      checkProfilePage()
-    }
-  }, 50)
+  checkPage()
+})
+window.navigation.addEventListener('load', (event) => {
+  checkPage()
 })
