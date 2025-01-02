@@ -1,7 +1,40 @@
 console.log('load')
 
+const getBskyNameFromString = (string = '') => {
+  return string.match(/\/?(\w+)\.bsky\.social$/gi)
+}
+
+const addAccountLink = (url) => {
+  const existingLabel = document.querySelector('#TwitterToBlueSkyProfileLabel')
+  if (existingLabel) {
+    existingLabel.remove()
+  }
+  const label = document.createElement('div')
+  label.id = 'TwitterToBlueSkyProfileLabel'
+  label.className = 'TwitterToBlueSkyProfile'
+  const link = document.createElement('a')
+  link.innerText = 'BlueSky Profile'
+  link.href = url
+  label.appendChild(link)
+  const target = document.querySelector('[data-testid="UserName"]')
+  target.appendChild(label)
+}
+
 const checkAccount = (urlName, name, checkName) => {
-  const nameUsed = checkName ? urlName : name
+  let nameUsed = checkName ? urlName : name
+  const matchUrlName = getBskyNameFromString(urlName)
+  if (matchUrlName?.length) {
+    nameUsed = matchUrlName[0].split('.bsky.social')[0]
+    addAccountLink(`https://bsky.app/profile/${nameUsed}.bsky.social`)
+    return
+  } else {
+    const matchName = getBskyNameFromString(name)
+    if (matchName?.length) {
+      nameUsed = matchName[0].split('.bsky.social')[0]
+      addAccountLink(`https://bsky.app/profile/${nameUsed}.bsky.social`)
+      return
+    }
+  }
   chrome.runtime.sendMessage(
     //goes to bg_page.js
     `https://public.api.bsky.app/xrpc/app.bsky.actor.getProfile?actor=${nameUsed}.bsky.social`,
@@ -12,19 +45,7 @@ const checkAccount = (urlName, name, checkName) => {
           checkAccount(urlName, name, false)
         }
       } else {
-        const existingLabel = document.querySelector('#TwitterToBlueSkyProfileLabel')
-        if (existingLabel) {
-          existingLabel.remove()
-        }
-        const label = document.createElement('div')
-        label.id = 'TwitterToBlueSkyProfileLabel'
-        label.className = 'TwitterToBlueSkyProfile'
-        const link = document.createElement('a')
-        link.innerText = 'BlueSky Profile'
-        link.href = `https://bsky.app/profile/${nameUsed}.bsky.social`
-        label.appendChild(link)
-        const target = document.querySelector('[data-testid="UserName"]')
-        target.appendChild(label)
+        addAccountLink(`https://bsky.app/profile/${nameUsed}.bsky.social`)
       }
     },
   )
@@ -59,7 +80,6 @@ const checkFollowingPage = async () => {
   const listElements = document.querySelectorAll(
     '[data-testid="primaryColumn"] > div > section > div > div > div',
   )
-  console.log(listElements.length)
   for (const element of listElements) {
     const target = element.querySelector('span')
     const profileLink = element.querySelector('a')?.href
@@ -73,8 +93,17 @@ const checkFollowingPage = async () => {
     ) {
       const linkName = profileLink.split('/')[0]
       const name = element.querySelector('span').innerText
-      const account = await getAccount(linkName, name)
-      console.log(name)
+      const matchLinkName = getBskyNameFromString(linkName)
+      const matchName = getBskyNameFromString(name)
+      let account = null
+      if (matchLinkName?.length) {
+        account = matchLinkName[0].split('.bsky.social')[0]
+      } else if (matchName?.length) {
+        account = matchName[0].split('.bsky.social')[0]
+      }
+      if (!account) {
+        account = await getAccount(linkName, name)
+      }
       if (account) {
         const existingLabel = element.querySelector('.TwitterToBlueSkyFollowingLabel')
         if (existingLabel) {
@@ -104,7 +133,6 @@ const checkProfilePage = () => {
   const id = setInterval(() => {
     const urlName = window.location.pathname.split('/')[1].toLocaleLowerCase()
     const target = document.querySelector('[data-testid="UserName"]')
-    console.log(urlName, target)
     if (target) {
       const name = target.querySelector('span').innerText.toLocaleLowerCase()
       if (name) {
@@ -123,7 +151,9 @@ const checkPage = () => {
     '.TwitterToBlueSkyProfile, .TwitterToBlueSkyFollowingLabel',
   )
   for (const label of existingLabels) {
-    label.remove()
+    if (label) {
+      label.remove()
+    }
   }
   clearInterval(followingId)
   const id = setTimeout(() => {
@@ -173,3 +203,5 @@ window.navigation.addEventListener('navigate', (event) => {
 window.navigation.addEventListener('load', (event) => {
   checkPage()
 })
+
+checkPage()
